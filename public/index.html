@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Credential Matrix Tester</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            background: #f0f4f8;
+            padding: 1.5rem;
+            color: #1a2a3a;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 24px;
+            padding: 2rem;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.1);
+        }
+        h1 { font-size: 2rem; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem; }
+        .subtitle { color: #5a7a8a; margin-bottom: 2rem; }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+        .field {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        .field label {
+            font-weight: 600;
+            font-size: 0.9rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .field label .count {
+            font-weight: 400;
+            color: #5a7a8a;
+            font-size: 0.8rem;
+        }
+        .field input, .field textarea, .field select {
+            padding: 0.7rem 1rem;
+            border: 2px solid #dce4ec;
+            border-radius: 12px;
+            font-size: 0.95rem;
+            font-family: inherit;
+            transition: border-color 0.2s;
+        }
+        .field textarea {
+            min-height: 150px;
+            resize: vertical;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 0.85rem;
+            line-height: 1.6;
+        }
+        .field input:focus, .field textarea:focus {
+            outline: none;
+            border-color: #4a7a9c;
+        }
+
+        .selector-help {
+            font-size: 0.8rem;
+            color: #5a7a8a;
+            background: #f5f8fa;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            margin: 0.5rem 0;
+            border-left: 3px solid #4a7a9c;
+        }
+
+        .btn-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            margin: 1.5rem 0;
+        }
+        .btn {
+            padding: 0.8rem 2.5rem;
+            border: none;
+            border-radius: 60px;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .btn-primary {
+            background: #1a3a4a;
+            color: white;
+        }
+        .btn-primary:hover { background: #0f2a3a; transform: scale(0.98); }
+        .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+        .btn-success {
+            background: #1a7a4a;
+            color: white;
+        }
+        .btn-success:hover { background: #0f6a3a; transform: scale(0.98); }
+        .btn-success:disabled { opacity: 0.6; cursor: not-allowed; }
+
+        .btn-warning {
+            background: #b87a2a;
+            color: white;
+        }
+        .btn-warning:hover { background: #a06a1a; transform: scale(0.98); }
+
+        .btn-outline {
+            background: transparent;
+            border: 2px solid #1a3a4a;
+            color: #1a3a4a;
+        }
+        .btn-outline:hover { background: #f0f4f8; }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1rem;
+            margin: 1.5rem 0;
+            padding: 1rem;
+            background: #f5f8fa;
+            border-radius: 16px;
+        }
+        .stat {
+            text-align: center;
+        }
+        .stat .number {
+            font-size: 2rem;
+            font-weight: 700;
+        }
+        .stat .label {
+            font-size: 0.85rem;
+            color: #5a7a8a;
+        }
+        .stat.success .number { color: #2a7a4a; }
+        .stat.failed .number { color: #b33a4a; }
+        .stat.total .number { color: #1a3a4a; }
+        .stat.rate .number { color: #4a7a9c; }
+
+        .results-container {
+            margin-top: 2rem;
+            max-height: 600px;
+            overflow-y: auto;
+            border: 2px solid #dce4ec;
+            border-radius: 16px;
+            background: #fafcfe;
+        }
+        .result-item {
+            display: grid;
+            grid-template-columns: 40px 1fr 1fr 100px 1fr;
+            padding: 0.6rem 1rem;
+            border-bottom: 1px solid #e8eef4;
+            font-size: 0.85rem;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .result-item:nth-child(even) { background: #f8fafc; }
+        .result-item .idx { color: #8a9aaa; font-weight: 500; }
+        .result-item .user { font-weight: 600; color: #1a3a4a; word-break: break-all; }
+        .result-item .pass { color: #4a6a7a; font-family: monospace; word-break: break-all; }
+        .result-item .status { text-align: center; font-weight: 600; }
+        .result-item .status.success { color: #2a7a4a; }
+        .result-item .status.failed { color: #b33a4a; }
+        .result-item .status.error { color: #b87a2a; }
+        .result-item .reason { color: #5a7a8a; font-size: 0.8rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+        .success-only {
+            margin-top: 1.5rem;
+            padding: 1.5rem;
+            background: #eaf5ee;
+            border-radius: 16px;
+            border-left: 4px solid #2a7a4a;
+        }
+        .success-only h3 { color: #1a4a3a; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem; }
+        .success-item {
+            display: flex;
+            gap: 1rem;
+            padding: 0.5rem;
+            border-bottom: 1px solid #d4e8dc;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .success-item strong { color: #1a4a3a; min-width: 80px; }
+        .success-item .arrow { color: #4a7a6a; }
+        .success-item .pass { font-family: monospace; background: #d4e8dc; padding: 0.2rem 0.8rem; border-radius: 12px; }
+
+        .loading {
+            text-align: center;
+            padding: 3rem;
+            font-size: 1.2rem;
+            color: #5a7a8a;
+        }
+        .spinner {
+            border: 4px solid #dce4ec;
+            border-top: 4px solid #1a3a4a;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        .export-section {
+            margin-top: 1.5rem;
+            padding: 1rem;
+            background: #f0f4f8;
+            border-radius: 12px;
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .banner {
+            background: #fff8e1;
+            border: 1px solid #ffe082;
+            border-radius: 12px;
+            padding: 0.75rem 1rem;
+            margin-bottom: 1.5rem;
+            font-size: 0.85rem;
+            color: #5d4037;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .limit-badge {
+            background: #1a3a4a;
+            color: white;
+            padding: 0.2rem 0.6rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-left: auto;
+        }
+
+        @media (max-width: 768px) {
+            .grid-2 { grid-template-columns: 1fr; }
+            .stats { grid-template-columns: 1fr 1fr; }
+            .result-item {
+                grid-template-columns: 30px 1fr;
+                gap: 0.3rem;
+            }
+            .result-item .status { grid-column: span 2; }
+            .result-item .reason { display: none; }
+            body { padding: 0.5rem; }
+            .container { padding: 1rem; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Credential Matrix Tester</h1>
+        <div class="subtitle">Test every User ID x Password combination against a live login page. Export results to CSV/Excel.</div>
+
+        <div class="banner">
+            <strong>Authorized Use Only.</strong> Only test systems you own or have explicit written permission to test.
+            <span id="limitDisplay" class="limit-badge">Limit: ...</span>
+        </div>
+
+        <div class="grid-2">
+            <div class="field">
+                <label>Login Page URL</label>
+                <input type="url" id="loginUrl" placeholder="https://example.com/login" value="https://example.com/login">
+            </div>
+            <div class="field">
+                <label>Selectors <span style="font-weight:400;font-size:0.8rem;">(comma-separated)</span></label>
+                <input type="text" id="usernameSelector" placeholder="Username field selector" value="input[name='username'], input[name='user'], input[name='email'], #username, #user">
+                <input type="text" id="passwordSelector" placeholder="Password field selector" value="input[name='password'], input[name='pass'], #password, #pass" style="margin-top:0.3rem;">
+                <input type="text" id="submitSelector" placeholder="Submit button selector" value="button[type='submit'], input[type='submit'], #login, #submit" style="margin-top:0.3rem;">
+                <div class="selector-help">CSS selectors for login form fields. Add multiple, separated by commas.</div>
+            </div>
+        </div>
+
+        <div class="grid-2">
+            <div class="field">
+                <label>
+                    User IDs
+                    <span class="count">Count: <span id="userIdCount">0</span></span>
+                </label>
+                <textarea id="userIds" placeholder="alice&#10;bob&#10;charlie">alice
+bob
+charlie
+diana
+eve
+frank
+grace
+hank
+iris
+jack
+karen
+leo
+mia
+nick
+olivia
+peter
+quinn
+rose
+sam
+tina
+uma
+victor
+wanda
+xavier
+yara
+zack</textarea>
+            </div>
+            <div class="field">
+                <label>
+                    Passwords
+                    <span class="count">Count: <span id="passwordCount">0</span></span>
+                </label>
+                <textarea id="passwords" placeholder="pass123&#10;secret&#10;qwerty">pass123
+secret
+qwerty
+admin
+letmein
+password
+123456
+welcome
+monkey
+dragon
+master
+sunshine
+iloveyou
+princess
+rockyou
+trustno1
+abc123
+password1
+qwerty123
+12345678
+111111
+baseball
+dragonball
+mustang
+shadow</textarea>
+            </div>
+        </div>
+
+        <div class="btn-group">
+            <button class="btn btn-primary" id="testBtn">Test All Combinations</button>
+            <button class="btn btn-success" id="exportCsvBtn" disabled>Export CSV</button>
+            <button class="btn btn-success" id="exportExcelBtn" disabled>Export Excel</button>
+            <button class="btn btn-outline" id="clearBtn">Clear Results</button>
+        </div>
+
+        <div id="combinationInfo" style="color:#5a7a8a; margin-bottom: 1rem;"></div>
+
+        <div id="resultsArea">
+            <div class="stats" id="statsArea" style="display:none;">
+                <div class="stat total">
+                    <div class="number" id="totalCount">0</div>
+                    <div class="label">Total Tests</div>
+                </div>
+                <div class="stat success">
+                    <div class="number" id="successCount">0</div>
+                    <div class="label">Successful</div>
+                </div>
+                <div class="stat failed">
+                    <div class="number" id="failedCount">0</div>
+                    <div class="label">Failed</div>
+                </div>
+                <div class="stat rate">
+                    <div class="number" id="successRate">0%</div>
+                    <div class="label">Success Rate</div>
+                </div>
+            </div>
+
+            <div id="resultsList"></div>
+
+            <div id="successOnly" style="display:none;" class="success-only">
+                <h3>Successful Logins Found!</h3>
+                <div id="successList"></div>
+            </div>
+
+            <div id="exportSection" style="display:none;" class="export-section">
+                <span style="font-weight:600;">Export Results:</span>
+                <button class="btn btn-success" id="exportCsvBtn2">CSV</button>
+                <button class="btn btn-success" id="exportExcelBtn2">Excel</button>
+                <span style="color:#5a7a8a;font-size:0.85rem;">Choose format to download</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+
+        const loginUrl = document.getElementById('loginUrl');
+        const userIds = document.getElementById('userIds');
+        const passwords = document.getElementById('passwords');
+        const usernameSelector = document.getElementById('usernameSelector');
+        const passwordSelector = document.getElementById('passwordSelector');
+        const submitSelector = document.getElementById('submitSelector');
+        const testBtn = document.getElementById('testBtn');
+        const exportCsvBtn = document.getElementById('exportCsvBtn');
+        const exportExcelBtn = document.getElementById('exportExcelBtn');
+        const exportCsvBtn2 = document.getElementById('exportCsvBtn2');
+        const exportExcelBtn2 = document.getElementById('exportExcelBtn2');
+        const clearBtn = document.getElementById('clearBtn');
+        const resultsList = document.getElementById('resultsList');
+        const statsArea = document.getElementById('statsArea');
+        const totalCount = document.getElementById('totalCount');
+        const successCount = document.getElementById('successCount');
+        const failedCount = document.getElementById('failedCount');
+        const successRate = document.getElementById('successRate');
+        const successOnly = document.getElementById('successOnly');
+        const successList = document.getElementById('successList');
+        const userIdCount = document.getElementById('userIdCount');
+        const passwordCount = document.getElementById('passwordCount');
+        const combinationInfo = document.getElementById('combinationInfo');
+        const exportSection = document.getElementById('exportSection');
+        const limitDisplay = document.getElementById('limitDisplay');
+
+        let currentResults = null;
+        let maxCombinations = 1000;
+
+        fetch('/health')
+            .then(r => r.json())
+            .then(d => {
+                if (d.maxCombinations) {
+                    maxCombinations = d.maxCombinations;
+                    limitDisplay.textContent = 'Limit: ' + maxCombinations.toLocaleString() + ' combos';
+                }
+            })
+            .catch(() => {
+                limitDisplay.textContent = 'Limit: 1,000 combos';
+            });
+
+        function getLines(text) {
+            return text.split(/\n/).map(l => l.trim()).filter(l => l.length > 0);
+        }
+
+        function updateCounts() {
+            const users = getLines(userIds.value);
+            const passes = getLines(passwords.value);
+            userIdCount.textContent = users.length;
+            passwordCount.textContent = passes.length;
+            const total = users.length * passes.length;
+            let msg = users.length + ' IDs x ' + passes.length + ' Passwords = ' + total.toLocaleString() + ' total combinations';
+            if (total > maxCombinations) {
+                msg += ' [Exceeds server limit of ' + maxCombinations.toLocaleString() + ']';
+                combinationInfo.style.color = '#b33a4a';
+            } else {
+                combinationInfo.style.color = '#5a7a8a';
+            }
+            combinationInfo.textContent = msg;
+        }
+
+        userIds.addEventListener('input', updateCounts);
+        passwords.addEventListener('input', updateCounts);
+        updateCounts();
+
+        testBtn.addEventListener('click', async () => {
+            const url = loginUrl.value.trim();
+            const users = getLines(userIds.value);
+            const passes = getLines(passwords.value);
+
+            if (!url) { alert('Please enter a login URL'); return; }
+            if (users.length === 0) { alert('Please enter at least one User ID'); return; }
+            if (passes.length === 0) { alert('Please enter at least one Password'); return; }
+            if (users.length * passes.length > maxCombinations) {
+                alert('Too many combinations (' + (users.length * passes.length) + '). Server limit is ' + maxCombinations + '. Reduce your lists or ask the admin to increase MAX_COMBINATIONS.');
+                return;
+            }
+
+            testBtn.disabled = true;
+            testBtn.textContent = 'Testing...';
+            exportCsvBtn.disabled = true;
+            exportExcelBtn.disabled = true;
+
+            const total = users.length * passes.length;
+            const estMin = Math.ceil(total * 3.5 / 60);
+
+            resultsList.innerHTML = `
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <p>Testing ${users.length} x ${passes.length} = ${total.toLocaleString()} combinations...</p>
+                    <p style="font-size:0.9rem;color:#7a9aaa;">Estimated time: ~${estMin} min</p>
+                    <p style="font-size:0.8rem;color:#7a9aaa;margin-top:0.5rem;">Do not close this tab</p>
+                </div>
+            `;
+            statsArea.style.display = 'none';
+            successOnly.style.display = 'none';
+            exportSection.style.display = 'none';
+
+            try {
+                const response = await fetch('/api/test', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        loginUrl: url,
+                        userIds: users,
+                        passwords: passes,
+                        selectors: {
+                            username: usernameSelector.value.trim() || undefined,
+                            password: passwordSelector.value.trim() || undefined,
+                            submit: submitSelector.value.trim() || undefined
+                        }
+                    })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok || data.error) {
+                    throw new Error(data.error || 'Unknown server error');
+                }
+
+                currentResults = data;
+                displayResults(data);
+
+            } catch (error) {
+                resultsList.innerHTML = `
+                    <div style="padding:2rem;text-align:center;color:#b33a4a;">
+                        <div style="font-size:1.2rem;margin-bottom:0.5rem;">Test Failed</div>
+                        <div style="color:#5a3a3a;background:#fff5f5;padding:1rem;border-radius:12px;display:inline-block;max-width:100%;word-break:break-word;">${escapeHtml(error.message)}</div>
+                        <br><br>
+                        <button onclick="location.reload()" style="padding:0.5rem 1.5rem;border:1px solid #b33a4a;border-radius:8px;background:white;cursor:pointer;">
+                            Reload Page
+                        </button>
+                    </div>
+                `;
+            } finally {
+                testBtn.disabled = false;
+                testBtn.textContent = 'Test All Combinations';
+            }
+        });
+
+        function displayResults(data) {
+            statsArea.style.display = 'grid';
+            totalCount.textContent = data.total.toLocaleString();
+            successCount.textContent = data.successful.toLocaleString();
+            failedCount.textContent = data.failed.toLocaleString();
+            successRate.textContent = data.total > 0 ? Math.round((data.successful / data.total) * 100) + '%' : '0%';
+
+            let html = '';
+            if (!data.results || data.results.length === 0) {
+                html = '<div style="padding:2rem;text-align:center;color:#5a7a8a;">No results to display</div>';
+            } else {
+                data.results.forEach((r, i) => {
+                    const statusClass = r.success ? 'success' : (r.error ? 'error' : 'failed');
+                    const statusText = r.success ? 'YES' : (r.error ? 'ERR' : 'NO');
+                    const reason = r.reason || r.error || '-';
+                    html += `
+                        <div class="result-item">
+                            <span class="idx">#${i+1}</span>
+                            <span class="user">${escapeHtml(r.userId)}</span>
+                            <span class="pass">${escapeHtml(r.password)}</span>
+                            <span class="status ${statusClass}">${statusText}</span>
+                            <span class="reason" title="${escapeHtml(reason)}">${escapeHtml(reason)}</span>
+                        </div>
+                    `;
+                });
+            }
+            resultsList.innerHTML = html;
+
+            if (data.successfulLogins && data.successfulLogins.length > 0) {
+                successOnly.style.display = 'block';
+                let successHtml = '';
+                data.successfulLogins.forEach((r) => {
+                    successHtml += `
+                        <div class="success-item">
+                            <strong>${escapeHtml(r.userId)}</strong>
+                            <span class="arrow">-></span>
+                            <span class="pass">${escapeHtml(r.password)}</span>
+                            <span style="color:#4a7a6a;font-size:0.8rem;word-break:break-all;">${escapeHtml(r.url || '')}</span>
+                        </div>
+                    `;
+                });
+                successList.innerHTML = successHtml;
+            } else {
+                successOnly.style.display = 'none';
+            }
+
+            exportCsvBtn.disabled = false;
+            exportExcelBtn.disabled = false;
+            exportSection.style.display = 'flex';
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        async function exportCSV() {
+            if (!currentResults || !currentResults.results) return;
+            try {
+                const response = await fetch('/api/export/csv', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ results: currentResults.results })
+                });
+                const data = await response.json();
+                if (data.success) {
+                    const blob = new Blob([data.data], { type: 'text/csv' });
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = data.filename;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    window.URL.revokeObjectURL(url);
+                } else {
+                    alert('Export failed: ' + data.error);
+                }
+            } catch (error) {
+                alert('Export error: ' + error.message);
+            }
+        }
+
+        async function exportExcel() {
+            if (!currentResults || !currentResults.results) return;
+            try {
+                const response = await fetch('/api/export/excel', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ results: currentResults.results })
+                });
+                const data = await response.json();
+                if (data.success) {
+                    const binary = atob(data.data);
+                    const bytes = new Uint8Array(binary.length);
+                    for (let i = 0; i < binary.length; i++) {
+                        bytes[i] = binary.charCodeAt(i);
+                    }
+                    const blob = new Blob([bytes], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = data.filename;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    window.URL.revokeObjectURL(url);
+                } else {
+                    alert('Export failed: ' + data.error);
+                }
+            } catch (error) {
+                alert('Export error: ' + error.message);
+            }
+        }
+
+        function clearResults() {
+            currentResults = null;
+            resultsList.innerHTML = '';
+            statsArea.style.display = 'none';
+            successOnly.style.display = 'none';
+            exportSection.style.display = 'none';
+            exportCsvBtn.disabled = true;
+            exportExcelBtn.disabled = true;
+        }
+
+        exportCsvBtn.addEventListener('click', exportCSV);
+        exportExcelBtn.addEventListener('click', exportExcel);
+        exportCsvBtn2.addEventListener('click', exportCSV);
+        exportExcelBtn2.addEventListener('click', exportExcel);
+        clearBtn.addEventListener('click', clearResults);
+    </script>
+</body>
+</html>

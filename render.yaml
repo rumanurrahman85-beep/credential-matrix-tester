@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: credential-matrix-tester
+    runtime: docker
+    plan: standard
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: MAX_COMBINATIONS
+        value: 1000
+    healthCheckPath: /health
